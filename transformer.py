@@ -3,15 +3,10 @@ import pandas as pd
 import ollama
 
 
-# -----------------------------
-# Load trained RandomForest model
-# -----------------------------
 rf_model = joblib.load("cvd_rf_model.pkl")
 
 
-# -----------------------------
-# Example patient input
-# -----------------------------
+
 patient = {
     "age": 54,
     "sex": 1,

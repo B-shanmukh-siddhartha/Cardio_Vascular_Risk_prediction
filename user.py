@@ -3,29 +3,60 @@ import pandas as pd
 import ollama
 
 
-# Load trained RandomForest model
-rf_model = joblib.load("cvd_rf_model.pkl")
+# -------- Input Validation Function --------
+def get_input(prompt, dtype=int, min_val=None, max_val=None):
+    while True:
+        try:
+            value = input(prompt).strip()
+
+            if value == "":
+                print("Value cannot be empty. Please try again.")
+                continue
+
+            value = dtype(value)
+
+            if min_val is not None and value < min_val:
+                print(f"Value must be >= {min_val}")
+                continue
+
+            if max_val is not None and value > max_val:
+                print(f"Value must be <= {max_val}")
+                continue
+
+            return value
+
+        except ValueError:
+            print("Invalid input. Please enter the correct type.")
+
+
+# -------- Load ML Model --------
+try:
+    rf_model = joblib.load("cvd_rf_model.pkl")
+except Exception as e:
+    print("Error loading model:", e)
+    exit()
 
 
 print("\nEnter Patient Details\n")
 
 
-age = int(input("Age: "))
-sex = int(input("Sex (1=Male, 0=Female): "))
-cp = int(input("Chest Pain Type (0-3): "))
-trestbps = int(input("Resting Blood Pressure: "))
-chol = int(input("Cholesterol Level: "))
-fbs = int(input("Fasting Blood Sugar (1=True, 0=False): "))
-restecg = int(input("Rest ECG (0-2): "))
-thalach = int(input("Maximum Heart Rate: "))
-exang = int(input("Exercise Induced Angina (1=Yes, 0=No): "))
-oldpeak = float(input("Oldpeak (ST Depression): "))
-slope = int(input("Slope (0-2): "))
-ca = int(input("Number of Major Vessels (0-3): "))
-thal = int(input("Thal (1=Normal,2=Fixed defect,3=Reversible defect): "))
+# -------- Safe User Inputs --------
+age = get_input("Age: ", int, 1, 120)
+sex = get_input("Sex (1=Male, 0=Female): ", int, 0, 1)
+cp = get_input("Chest Pain Type (0-3): ", int, 0, 3)
+trestbps = get_input("Resting Blood Pressure: ", int, 50, 250)
+chol = get_input("Cholesterol Level: ", int, 50, 600)
+fbs = get_input("Fasting Blood Sugar (1=True, 0=False): ", int, 0, 1)
+restecg = get_input("Rest ECG (0-2): ", int, 0, 2)
+thalach = get_input("Maximum Heart Rate: ", int, 40, 220)
+exang = get_input("Exercise Induced Angina (1=Yes, 0=No): ", int, 0, 1)
+oldpeak = get_input("Oldpeak (ST Depression): ", float, 0, 10)
+slope = get_input("Slope (0-2): ", int, 0, 2)
+ca = get_input("Number of Major Vessels (0-3): ", int, 0, 3)
+thal = get_input("Thal (1=Normal,2=Fixed defect,3=Reversible defect): ", int, 1, 3)
 
 
-# Create patient dictionary
+# -------- Create Patient Data --------
 patient = {
     "age": age,
     "sex": sex,
@@ -43,21 +74,29 @@ patient = {
 }
 
 
-# Convert to dataframe
 patient_df = pd.DataFrame([patient])
 
 # Ensure correct feature order
-patient_df = patient_df[rf_model.feature_names_in_]
+try:
+    patient_df = patient_df[rf_model.feature_names_in_]
+except Exception as e:
+    print("Feature mismatch error:", e)
+    exit()
 
 
-# ML Prediction
-prediction = rf_model.predict(patient_df)[0]
-probability = rf_model.predict_proba(patient_df)[0][1]
+# -------- ML Prediction --------
+try:
+    prediction = rf_model.predict(patient_df)[0]
+    probability = rf_model.predict_proba(patient_df)[0][1]
+except Exception as e:
+    print("Prediction error:", e)
+    exit()
+
 
 risk_text = "High cardiovascular risk" if prediction == 1 else "Low cardiovascular risk"
 
 
-# Prompt for Ollama
+# -------- LLM Prompt --------
 prompt = f"""
 A machine learning model predicted cardiovascular disease risk.
 
@@ -77,16 +116,20 @@ Explain:
 """
 
 
-# Ask Ollama
-response = ollama.chat(
-    model="llama3.2:1b",
-    messages=[{"role": "user", "content": prompt}]
-)
+# -------- Ask Ollama --------
+try:
+    response = ollama.chat(
+        model="llama3.2:1b",
+        messages=[{"role": "user", "content": prompt}]
+    )
 
-explanation = response["message"]["content"]
+    explanation = response["message"]["content"]
+
+except Exception as e:
+    explanation = "Could not generate explanation. Ensure Ollama is running."
 
 
-# Final Output
+# -------- Final Output --------
 print("\n==============================")
 print("Cardiovascular Risk Prediction")
 print("==============================")
