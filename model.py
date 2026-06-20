@@ -65,15 +65,12 @@ rf_model = RandomForestClassifier(
 )
 
 
-# Train model
 rf_model.fit(X_train_res, y_train_res)
 
 
-# Predictions
 y_pred = rf_model.predict(X_test)
 
 
-# Evaluation
 print("\nAccuracy:", accuracy_score(y_test, y_pred) * 100)
 
 print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
@@ -81,7 +78,6 @@ print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
 print("\nClassification Report:\n", classification_report(y_test, y_pred))
 
 
-# Save model
 joblib.dump(rf_model, "cvd_rf_model.pkl")
 
 print("\nModel saved successfully!")
